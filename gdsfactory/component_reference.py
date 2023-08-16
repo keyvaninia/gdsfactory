@@ -4,11 +4,11 @@ Adapted from PHIDL https://github.com/amccaugh/phidl/ by Adam McCaughan
 """
 
 from __future__ import annotations
+import warnings
 
 import typing
 from typing import Any, cast
 
-import gdstk
 import kfactory as kf
 import numpy as np
 import shapely
@@ -118,6 +118,9 @@ def _rotate_points(
     return displacement * ca + perpendicular * sa + c0
 
 
+_tmp_cells = kf.KCell("_tmp_cells")
+
+
 class ComponentReference(_GeometryHelper):
     """Pointer to a Component with x, y, rotation, mirror.
 
@@ -141,42 +144,15 @@ class ComponentReference(_GeometryHelper):
     """
 
     def __init__(
-        self,
-        component: Component,
-        origin: Coordinate = (0, 0),
-        rotation: float = 0,
-        magnification: float = 1,
-        x_reflection: bool = False,
-        visual_label: str = "",
-        columns: int = 1,
-        rows: int = 1,
-        spacing=None,
-        name: str | None = None,
-        v1: tuple[float, float] | None = None,
-        v2: tuple[float, float] | None = None,
+        self, component: Component, owner: Component | None = None, **kwargs
     ) -> None:
         """Initialize the ComponentReference object."""
         self._reference = kf.Instance(
             instance=component._cell,
             kcl=component._cell.kcl,
         )
-        if v1 or v2:
-            self._reference.repetition = gdstk.Repetition(
-                columns=columns, rows=rows, v1=v1, v2=v2
-            )
-
-        self._ref_cell = component
-        self._owner = None
-        self._name = name
-
-        # The ports of a ComponentReference have their own unique id (uid),
-        # since two ComponentReferences of the same parent Component can be
-        # in different locations and thus do not represent the same port
-        self._local_ports = {
-            name: port._copy() for name, port in component.ports.items()
-        }
-        self.visual_label = visual_label
-        # self.uid = str(uuid.uuid4())[:8]
+        if kwargs:
+            warnings.warn("kwargs not supported for ComponentReference")
 
     @property
     def v1(self) -> tuple[float, float] | None:

@@ -1402,10 +1402,10 @@ class Component(_GeometryHelper):
         """
         if not isinstance(component, Component):
             raise TypeError(f"type = {type(Component)} needs to be a Component.")
-        ref = ComponentReference(component, **kwargs)
-        self._add(ref)
-        self._register_reference(reference=ref, alias=alias)
-        return ref
+        # ref = ComponentReference(component, **kwargs)
+        # self._add(ref)
+        # self._register_reference(reference=ref, alias=alias)
+        return self._cell.create_inst(component._cell)
 
     def _register_reference(
         self, reference: ComponentReference, alias: str | None = None
@@ -2895,7 +2895,7 @@ if __name__ == "__main__":
     c.add_port(name="o1", center=(0, 0), width=0.5, orientation=180, layer=(1, 0))
     c.add_port(name="o2", center=(length, 0), width=0.5, orientation=180, layer=(1, 0))
     c << c2
-    c2.show()
+    c.show()
 
     # c2._cell.write("child.gds")
     # gf.show('child.gds')
