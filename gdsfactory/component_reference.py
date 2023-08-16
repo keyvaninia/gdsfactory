@@ -9,6 +9,7 @@ import typing
 from typing import Any, cast
 
 import gdstk
+import kfactory as kf
 import numpy as np
 import shapely
 from numpy import cos, mod, ndarray, pi, sin
@@ -155,15 +156,9 @@ class ComponentReference(_GeometryHelper):
         v2: tuple[float, float] | None = None,
     ) -> None:
         """Initialize the ComponentReference object."""
-        self._reference = gdstk.Reference(
-            cell=component._cell,
-            origin=origin,
-            rotation=np.deg2rad(rotation),
-            magnification=magnification,
-            x_reflection=x_reflection,
-            columns=columns,
-            rows=rows,
-            spacing=spacing,
+        self._reference = kf.Instance(
+            instance=component._cell,
+            kcl=component._cell.kcl,
         )
         if v1 or v2:
             self._reference.repetition = gdstk.Repetition(
@@ -923,35 +918,15 @@ def test_pads_no_orientation() -> None:
 
 
 if __name__ == "__main__":
-    # test_get_polygons_ref()
-    # test_get_polygons()
     import gdsfactory as gf
 
     c = gf.Component("parent")
-    ref = c << gf.components.straight()
-    c.add_ports(ref.ports)
-    ref.movex(5)
-    # assert c.ports['o1'].center[0] == 5, print(c.ports['o1'])
-    print(c.ports["o1"].center)
-    c.show(show_ports=True)
-
-    # p = ref.get_polygons(by_spec=(1, 0), as_array=False)
-
-    # c = gf.Component("parent")
-    # c2 = gf.Component("child")
-    # length = 10
-    # width = 0.5
-    # layer = (1, 0)
-    # c2.add_polygon([(0, 0), (length, 0), (length, width), (0, width)], layer=layer)
-    # c << c2
-
-    # c = gf.c.dbr()
-    # c.show()
-
-    # import gdsfactory as gf
-
-    # c = gf.Component()
-    # mzi = c.add_ref(gf.components.mzi())
-    # bend = c.add_ref(gf.components.bend_euler())
-    # bend.move("o1", mzi.ports["o2"])
-    # bend.move("o1", "o2")
+    c2 = gf.Component("child")
+    length = 10
+    width = 0.5
+    layer = (1, 0)
+    c2.add_polygon([(0, 0), (length, 0), (length, width), (0, width)], layer=layer)
+    c.add_port(name="o1", center=(0, 0), width=0.5, orientation=180, layer=(1, 0))
+    c.add_port(name="o2", center=(length, 0), width=0.5, orientation=180, layer=(1, 0))
+    c << c2
+    c2.show()

@@ -19,9 +19,11 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal
 
 import gdstk
+import kfactory as kf
 import numpy as np
 import shapely
 import yaml
+from kfactory import kdb
 from omegaconf import DictConfig
 
 from gdsfactory.component_layout import (
@@ -181,7 +183,7 @@ class Component(_GeometryHelper):
         if with_uuid or name == "Unnamed":
             name += f"_{self.uid}"
 
-        self._cell = gdstk.Cell(name=name)
+        self._cell = kf.KCell(name=name)
         self.name = name
         self.info: dict[str, Any] = {}
 
@@ -198,7 +200,7 @@ class Component(_GeometryHelper):
 
     @property
     def references(self):
-        return self._references
+        return self._cell.insts
 
     @property
     def polygons(self) -> list[Polygon]:
@@ -1051,9 +1053,7 @@ class Component(_GeometryHelper):
 
         return component
 
-    def add_polygon(
-        self, points, layer: str | int | tuple[int, int] | np.nan = np.nan
-    ) -> Polygon:
+    def add_polygon(self, points, layer: str | int | tuple[int, int]) -> Polygon:
         """Adds a Polygon to the Component.
 
         Args:
@@ -1139,7 +1139,17 @@ class Component(_GeometryHelper):
 
     def _add_polygons(self, *polygons: list[Polygon]) -> None:
         self.is_unlocked()
-        self._cell.add(*polygons)
+        for polygon in polygons:
+            if isinstance(polygon, kdb.DPolygon):
+                self._cell.shapes(self.kcl.layer(layer[0], layer[1])).insert(polygon)
+            else:
+                layer = (polygon.layer, polygon.datatype)
+                points = kdb.DPolygon(
+                    [kdb.DPoint(point[0], point[1]) for point in polygon.points]
+                )
+                self._cell.shapes(self._cell.kcl.layer(layer[0], layer[1])).insert(
+                    points
+                )
 
     def copy(self) -> Component:
         return copy(self)
@@ -1933,7 +1943,7 @@ class Component(_GeometryHelper):
     def write_gds(
         self,
         gdspath: PathType | None = None,
-        gdsdir: PathType | None = None,
+        gdsdir: PathType = GDSDIR_TEMP,
         **kwargs,
     ) -> Path:
         """Write component to GDS and returns gdspath.
@@ -1958,10 +1968,10 @@ class Component(_GeometryHelper):
             with_netlist: writes a netlist in JSON format.
             netlist_function: function to generate the netlist.
         """
+        gdspath = gdspath or gdsdir / f"{self.name}.gds"
 
-        return self._write_library(
-            gdspath=gdspath, gdsdir=gdsdir, with_oasis=False, **kwargs
-        )
+        self._cell.write(gdspath)
+        return gdspath
 
     def write_oas(
         self,
@@ -2876,10 +2886,19 @@ def test_import_gds_settings() -> None:
 
 
 if __name__ == "__main__":
-    import gdsfactory as gf
+    c = Component("parent")
+    c2 = Component("child")
+    length = 10
+    width = 0.5
+    layer = (1, 0)
+    c2.add_polygon([(0, 0), (length, 0), (length, width), (0, width)], layer=layer)
+    c.add_port(name="o1", center=(0, 0), width=0.5, orientation=180, layer=(1, 0))
+    c.add_port(name="o2", center=(length, 0), width=0.5, orientation=180, layer=(1, 0))
+    c << c2
+    c2.show()
 
-    gf.Component("hi")
-    gf.Component("hi")
+    # c2._cell.write("child.gds")
+    # gf.show('child.gds')
 
     # c = gf.c.mzi()
     # c.pprint_ports()
