@@ -2894,7 +2894,8 @@ if __name__ == "__main__":
     c2.add_polygon([(0, 0), (length, 0), (length, width), (0, width)], layer=layer)
     c.add_port(name="o1", center=(0, 0), width=0.5, orientation=180, layer=(1, 0))
     c.add_port(name="o2", center=(length, 0), width=0.5, orientation=180, layer=(1, 0))
-    c << c2
+    ref = c << c2
+    ref.rotate(90)
     c.show()
 
     # c2._cell.write("child.gds")

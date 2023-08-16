@@ -118,7 +118,7 @@ def _rotate_points(
     return displacement * ca + perpendicular * sa + c0
 
 
-_tmp_cells = kf.KCell("_tmp_cells")
+# _tmp_cells = kf.KCell("_tmp_cells")
 
 
 class ComponentReference(_GeometryHelper):
@@ -628,29 +628,8 @@ class ComponentReference(_GeometryHelper):
         self._bb_valid = False
         return self
 
-    def rotate(
-        self,
-        angle: float = 45,
-        center: Coordinate | str | int = (0.0, 0.0),
-    ) -> ComponentReference:
-        """Return rotated ComponentReference.
-
-        Args:
-            angle: in degrees.
-            center: x, y.
-        """
-        if angle == 0:
-            return self
-        if isinstance(center, int | str):
-            center = self.ports[center].center
-
-        if isinstance(center, Port):
-            center = center.center
-        self.rotation += angle
-        self.rotation %= 360
-        self.origin = _rotate_points(self.origin, angle, center)
-        self._bb_valid = False
-        return self
+    def rotate(self, angle, origin: tuple[float, float] | None = (0, 0)):
+        self._reference.transform(kf.kdb.DTrans(angle, False, *origin))
 
     def mirror_x(
         self, port_name: str | None = None, x0: Coordinate | None = None
@@ -901,8 +880,10 @@ if __name__ == "__main__":
     length = 10
     width = 0.5
     layer = (1, 0)
-    c2.add_polygon([(0, 0), (length, 0), (length, width), (0, width)], layer=layer)
+    c2.add_polygon([(0, 0), (length, 0), (length, width+10), (0, width)], layer=layer)
     c.add_port(name="o1", center=(0, 0), width=0.5, orientation=180, layer=(1, 0))
     c.add_port(name="o2", center=(length, 0), width=0.5, orientation=180, layer=(1, 0))
-    c << c2
-    c2.show()
+    ref = c << c2
+    # ref.rotate(90)
+    ref.mirror()
+    c.show()
